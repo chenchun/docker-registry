@@ -6,9 +6,9 @@ common: &common
     # Enable debugging (additional informations in the output of the _ping endpoint)
     debug: _env:DEBUG:false
     # By default, the registry acts standalone (eg: doesn't query the index)
-    standalone: _env:STANDALONE:true
+    standalone: _env:STANDALONE:false
     # The default endpoint to use (if NOT standalone) is index.docker.io
-    index_endpoint: _env:INDEX_ENDPOINT:https://index.docker.io
+    index_endpoint: _env:INDEX_ENDPOINT:http://0.0.0.0:8080
     # Storage redirect is disabled
     storage_redirect: _env:STORAGE_REDIRECT
     # Token auth is enabled (if NOT standalone)

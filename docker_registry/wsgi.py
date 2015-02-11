@@ -26,9 +26,7 @@ cfg = config.load()
 if cfg.search_backend:
     from .search import *  # noqa
 
-if cfg.standalone:
-    # If standalone mode is enabled, load the fake Index routes
-    from .index import *  # noqa
+from .mock_hub import *  # noqa
 
 if __name__ == '__main__':
     host = env.source('REGISTRY_HOST')
