@@ -79,49 +79,67 @@ def get_post_users():
 #         store.put_content(path, data_arg)
 
 
-# @app.route('/v1/repositories/<path:repository>', methods=['PUT'])
-# @app.route('/v1/repositories/<path:repository>/images',
-#            defaults={'images': True},
-#            methods=['PUT'])
-# @toolkit.parse_repository_name
-# @toolkit.requires_auth
-# def put_repository(namespace, repository, images=False):
-#     data = None
-#     try:
-#         # Note(dmp): unicode patch
-#         data = json.loads(flask.request.data.decode('utf8'))
-#     except ValueError:
-#         return toolkit.api_error('Error Decoding JSON', 400)
-#     if not isinstance(data, list):
-#         return toolkit.api_error('Invalid data')
-#     update_index_images(namespace, repository, flask.request.data)
-#     headers = generate_headers(namespace, repository, 'write')
-#     code = 204 if images is True else 200
-#     return toolkit.response('', code, headers)
+@app.route('/v1/repositories/<path:repository>/', methods=['PUT'])
+@app.route('/v1/repositories/<path:repository>/images',
+           defaults={'images': True},
+           methods=['PUT'])
+@toolkit.parse_repository_name
+def put_repository(namespace, repository, images=False):
+    auth = flask.request.headers.get('Authorization', '')
+    print flask.request.headers
+    if auth == '':
+        return toolkit.response(None, 401, None)
+    parts = auth.split(' ')
+    if parts[0].lower() != 'basic':
+        return toolkit.response(None, 403, None)
+    data = None
+    try:
+        data = json.loads(flask.request.data.decode('utf8'))
+    except ValueError:
+        return toolkit.api_error('Error Decoding JSON', 400)
+    if not isinstance(data, list):
+        return toolkit.api_error('Invalid data')
+
+    if flask.request.headers.get('X-Docker-Endpoints', '') != '':
+        # update_index_images(namespace, repository, flask.request.data) 更新image的元数据
+        print 'update image indexs'
+        return toolkit.response('', 204, None)
+    elif flask.request.headers.get('X-Docker-Token', '') == 'true':
+        headers = generate_headers(namespace, repository, 'write')
+        return toolkit.response('', 200, headers)
+    return toolkit.response(None, 403, None)
 
 
 @app.route('/v1/repositories/<path:repository>/images', methods=['GET'])
 @toolkit.parse_repository_name
 def get_repository_images(namespace, repository):
     auth = flask.request.headers.get('Authorization', '')
-    print flask.request.headers
     if auth == '':
         return toolkit.response(None, 401, None)
     parts = auth.split(' ')
     if parts[0].lower() == 'token':
-        print "token auth"
-        print parts[1]
-        print lastToken
         if len(parts) < 2 or parts[1] != lastToken:
             return toolkit.response(None, 403, None)
         return toolkit.response(busyboxData, 200, None)
     elif parts[0].lower() == 'basic':
-        print "basic auth"
         headers = generate_headers(namespace, repository, 'read')
         # print "return headers %s", headers
         return toolkit.response(busyboxData, 200, headers)
     return toolkit.response(None, 401, None)
 
+@app.route('/v1/repositories/<path:repository>/layer/<layer>/access',
+           methods=['GET'])
+@toolkit.parse_repository_name
+def get_repository_layer(namespace, repository, layer):
+    auth = flask.request.headers.get('Authorization', '')
+    if auth == '':
+        return toolkit.response(None, 401, None)
+    parts = auth.split(' ')
+    if parts[0].lower() == 'token':
+        if len(parts) < 2 or parts[1] != lastToken:
+            return toolkit.response(None, 403, None)
+        return toolkit.response(dict(access=True), 200, None)
+    return toolkit.response(None, 401, None)
 
 # @app.route('/v1/repositories/<path:repository>/images', methods=['DELETE'])
 # @toolkit.parse_repository_name
@@ -130,7 +148,7 @@ def get_repository_images(namespace, repository):
 #     # Does nothing, this file will be removed when DELETE on repos
 #     headers = generate_headers(namespace, repository, 'delete')
 #     return toolkit.response('', 204, headers)
-#
+
 #
 # @app.route('/v1/repositories/<path:repository>/auth', methods=['PUT'])
 # @toolkit.parse_repository_name
